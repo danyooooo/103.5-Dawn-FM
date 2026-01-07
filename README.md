@@ -4,7 +4,7 @@
 
 A sophisticated, globally synchronized live radio station web application dedicated to The Weeknd's *Dawn FM*.
 
-![Preview](./public/cover.jpg)
+![Preview](./public/cover.png)
 
 ## 🌟 Key Features
 
@@ -52,7 +52,7 @@ Unlike standard file servers, this project implements a custom **Time-Based Stre
     ```
 
 3.  **Important**: Place your audio source file.
-    -   Rename The Weeknd's *Dawn FM* full album audio file to `dawn_fm.mp3`.
+    -   Rename The Weeknd's *Dawn FM* full album audio file to `master.mp3`.
     -   Place it in `server/data/`.
     *(Note: This repository does not include the copyrighted audio file).*
 
