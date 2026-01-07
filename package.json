@@ -1,0 +1,12 @@
+{
+  "name": "dawn-fm-radio",
+  "version": "1.0.0",
+  "description": "Single Station Radio for Dawn FM",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

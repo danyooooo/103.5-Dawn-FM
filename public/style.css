@@ -1,0 +1,331 @@
+:root {
+    --bg-color: #121212;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --accent: #0f4e64;
+    /* Updated Blue-ish Accent */
+    --transition-speed: 0.6s;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body,
+html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+}
+
+/* =========================================
+   Omni-Click Overlay
+   ========================================= */
+#interaction-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.01);
+    /* Almost invisible but clickable */
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s ease;
+}
+
+#interaction-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.overlay-hint {
+    background: rgba(0, 0, 0, 0.6);
+    padding: 1rem 2rem;
+    border-radius: 2rem;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    animation: fadeInHint 2s ease forwards 1s;
+    /* Delay showing hint */
+}
+
+@keyframes fadeInHint {
+    to {
+        opacity: 1;
+    }
+}
+
+/* =========================================
+   Layout & Background
+   ========================================= */
+#app-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+}
+
+#dynamic-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 30%, var(--accent), transparent 70%);
+    opacity: 0.6;
+    z-index: -2;
+    transition: background 1.5s ease;
+}
+
+#noise-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIj48ZmlsdGVyIGlkPSJnoiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIwLjY1IiBudW1PY3RhdmVzPSIzIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsdGVyPSJ1cmwoI2cpIiBvcGFjaXR5PSIwLjAzIi8+PC9zdmc+');
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* =========================================
+   Content
+   ========================================= */
+.content-wrapper {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    max-width: 90%;
+}
+
+.artwork-container {
+    position: relative;
+    width: 250px;
+    height: 250px;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+    .artwork-container {
+        width: 400px;
+        height: 400px;
+    }
+}
+
+.artwork {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s ease;
+}
+
+.artwork.hidden {
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.artist {
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* Animation States */
+.fade-out {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* =========================================
+   Controls
+   ========================================= */
+.controls-container {
+    position: absolute;
+    bottom: 2rem;
+    width: 100%;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10000;
+    /* Above interaction overlay */
+    pointer-events: auto;
+    /* Ensure clickable */
+}
+
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    backdrop-filter: blur(5px);
+    transition: opacity 0.3s ease;
+}
+
+.volume-control:hover {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    outline: none;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.pulse {
+    width: 8px;
+    height: 8px;
+    background-color: #ff3b30;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(255, 59, 48, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
+    }
+}
+
+/* =========================================
+   Header Elements (Watermark & Lyrics)
+   ========================================= */
+.header-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 10001;
+    /* Highest to sit above overlay */
+    pointer-events: none;
+    /* Let clicks pass through except on buttons */
+}
+
+.brand-watermark {
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    opacity: 0.6;
+    text-transform: uppercase;
+}
+
+.lyrics-btn {
+    pointer-events: auto;
+    /* Enable interaction */
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: default;
+    /* Disabled look */
+    opacity: 0.3;
+    position: relative;
+    transition: opacity 0.3s;
+}
+
+.lyrics-btn:hover {
+    opacity: 0.5;
+}
+
+.lyrics-tooltip {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    width: max-content;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.lyrics-btn:hover .lyrics-tooltip {
+    opacity: 1;
+}
