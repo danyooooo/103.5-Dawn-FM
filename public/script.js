@@ -19,6 +19,7 @@ const volSlider = document.getElementById('volume-slider');
 const DEFAULT_IMAGE = "cover"; // Served from backend
 let isPlaying = false;
 var syncTimeout = null; // var avoids Temporal Dead Zone issues if hoisted functions access it
+var syncRetryCount = 0; // Track consecutive sync failures for backoff
 
 /**
  * Initialize
@@ -26,15 +27,9 @@ var syncTimeout = null; // var avoids Temporal Dead Zone issues if hoisted funct
 async function init() {
     audioEl.src = AUDIO_SRC;
 
-    try {
-        if (typeof FastAverageColor !== 'undefined') {
-            colorFac = new FastAverageColor();
-        } else {
-            console.warn("FastAverageColor lib not found.");
-        }
-    } catch (e) {
-        console.warn("Color init error", e);
-    }
+    // Initialize volume to match slider
+    audioEl.volume = parseFloat(volSlider.value);
+    updateMuteIcon();
 
     // Initial Sync
     await performSync();
@@ -69,6 +64,9 @@ async function performSync() {
         // Update Visuals
         updateVisuals(data.now_playing);
 
+        // Reset retry count on success
+        syncRetryCount = 0;
+
         // NOTE: We no longer seek/correct drift manually.
         // The /stream endpoint handles the "Tune In" time on connection.
         // We just let it play.
@@ -83,8 +81,11 @@ async function performSync() {
 
     } catch (e) {
         console.error("Sync failed:", e);
-        // Retry in 5 seconds if failed
-        setTimeout(performSync, 5000);
+        // Exponential backoff: 5s, 10s, 20s, 40s, max 60s
+        syncRetryCount++;
+        const backoffDelay = Math.min(5000 * Math.pow(2, syncRetryCount - 1), 60000);
+        console.log(`[Dawn FM] Retrying sync in ${(backoffDelay / 1000).toFixed(1)}s (attempt ${syncRetryCount})`);
+        setTimeout(performSync, backoffDelay);
     }
 }
 
@@ -198,12 +199,14 @@ function setupMediaSession() {
 
 function updateMediaSession(meta) {
     if ('mediaSession' in navigator) {
+        // Build absolute URL for artwork
+        const artworkUrl = new URL('cover', window.location.href).href;
         navigator.mediaSession.metadata = new MediaMetadata({
             title: meta.title,
             artist: "The Weeknd",
             album: "Dawn FM",
             artwork: [
-                { src: DEFAULT_IMAGE, sizes: '512x512', type: 'image/jpeg' }
+                { src: artworkUrl, sizes: '512x512', type: 'image/jpeg' }
             ]
         });
     }

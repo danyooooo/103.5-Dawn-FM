@@ -20,9 +20,34 @@ const STATION_DATA = rawData.map(track => ({
     triggerMs: parseTime(track.triggerAt)
 })).sort((a, b) => a.triggerMs - b.triggerMs);
 
-// Global Clock
-const TOTAL_AUDIO_DURATION_MS = 3600 * 1000; // Default 1 hour fallback
+// Validate audio file exists at startup
+const AUDIO_FILE_PATH = path.join(__dirname, 'server/assets/master.mp3');
+if (!fs.existsSync(AUDIO_FILE_PATH)) {
+    console.error('[Dawn FM] CRITICAL: master.mp3 not found at', AUDIO_FILE_PATH);
+    console.error('[Dawn FM] Please place the Dawn FM album audio file in server/assets/');
+    process.exit(1);
+}
+const AUDIO_FILE_SIZE = fs.statSync(AUDIO_FILE_PATH).size;
+
+// Calculate total duration from offsets.json
+// Last track starts at 48:49, estimate ~3 minutes for the final track
+const LAST_TRACK_START_MS = STATION_DATA[STATION_DATA.length - 1].triggerMs;
+const ESTIMATED_LAST_TRACK_DURATION_MS = 3 * 60 * 1000 + 4 * 1000; // ~3:04 for "Phantom Regret by Jim"
+const TOTAL_AUDIO_DURATION_MS = LAST_TRACK_START_MS + ESTIMATED_LAST_TRACK_DURATION_MS;
+const BYTES_PER_MS = AUDIO_FILE_SIZE / TOTAL_AUDIO_DURATION_MS;
+
+console.log(`[Dawn FM] Album duration: ${Math.floor(TOTAL_AUDIO_DURATION_MS / 60000)}:${String(Math.floor((TOTAL_AUDIO_DURATION_MS % 60000) / 1000)).padStart(2, '0')}`);
+
 const STATE_FILE = path.join(__dirname, 'server/data/state.json');
+
+/**
+ * Find which track should be playing at a given position (ms)
+ */
+function getTrackAtPosition(positionMs) {
+    let trackIndex = STATION_DATA.findLastIndex(t => t.triggerMs <= positionMs);
+    if (trackIndex === -1) trackIndex = 0;
+    return { index: trackIndex, track: STATION_DATA[trackIndex] };
+}
 
 // Load stored state or start fresh
 let existingUptime = 0;
@@ -30,8 +55,24 @@ try {
     if (fs.existsSync(STATE_FILE)) {
         const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
         if (state.uptime && typeof state.uptime === 'number') {
-            existingUptime = state.uptime;
-            console.log(`[Dawn FM] Resuming broadcast from: ${existingUptime} ms`);
+            // Validate uptime is within bounds
+            const validUptime = state.uptime % TOTAL_AUDIO_DURATION_MS;
+
+            // Validate the stored track index matches the calculated one
+            const { index: calculatedIndex, track } = getTrackAtPosition(validUptime);
+
+            if (state.trackIndex !== undefined && state.trackIndex !== calculatedIndex) {
+                console.warn(`[Dawn FM] State mismatch: stored track ${state.trackIndex}, calculated ${calculatedIndex}`);
+                console.log(`[Dawn FM] Adjusting to track boundary: ${track.meta.title} @ ${track.triggerAt}`);
+                // Snap to the beginning of the current track to ensure sync
+                existingUptime = track.triggerMs;
+            } else {
+                existingUptime = validUptime;
+            }
+
+            const currentTrack = getTrackAtPosition(existingUptime);
+            console.log(`[Dawn FM] Resuming at: ${Math.floor(existingUptime / 60000)}:${String(Math.floor((existingUptime % 60000) / 1000)).padStart(2, '0')}`);
+            console.log(`[Dawn FM] Current track: ${currentTrack.track.meta.title}`);
         }
     }
 } catch (e) {
@@ -43,10 +84,11 @@ const SERVER_START_TIME = Date.now() - existingUptime;
 
 console.log(`[Dawn FM] Station launched. Tracks loaded: ${STATION_DATA.length}`);
 
-// Autosave State often (every 5 seconds)
+// Autosave State often (every 5 seconds) with track index for validation
 setInterval(() => {
     const uptime = (Date.now() - SERVER_START_TIME) % TOTAL_AUDIO_DURATION_MS;
-    fs.writeFile(STATE_FILE, JSON.stringify({ uptime }), (err) => {
+    const { index: trackIndex } = getTrackAtPosition(uptime);
+    fs.writeFile(STATE_FILE, JSON.stringify({ uptime, trackIndex }), (err) => {
         if (err) console.error("[Dawn FM] State save failed", err.message);
     });
 }, 5000);
@@ -77,14 +119,9 @@ const apiRouter = express.Router();
  * Pipes audio starting from the current server time, looping infinitely.
  */
 apiRouter.get('/stream', (req, res) => {
-    const filePath = path.join(__dirname, 'server/assets/master.mp3');
-
-    // Ensure file exists
-    if (!fs.existsSync(filePath)) return res.status(404).end();
-
-    const stat = fs.statSync(filePath);
-    const fileSize = stat.size;
-    const durationMs = TOTAL_AUDIO_DURATION_MS; // 3600000 ms
+    // Use pre-validated file path and size
+    const fileSize = AUDIO_FILE_SIZE;
+    const durationMs = TOTAL_AUDIO_DURATION_MS;
 
     // Calculate where we are in the "Broadcast"
     const uptime = Date.now() - SERVER_START_TIME;
@@ -109,7 +146,7 @@ apiRouter.get('/stream', (req, res) => {
     let currentStream;
 
     const playLoop = (offset) => {
-        currentStream = fs.createReadStream(filePath, { start: offset });
+        currentStream = fs.createReadStream(AUDIO_FILE_PATH, { start: offset });
 
         // Pipe to response, but don't end response when file ends (end: false)
         currentStream.pipe(res, { end: false });
@@ -149,7 +186,7 @@ apiRouter.get('/cover', (req, res) => {
 apiRouter.get('/sync', (req, res) => {
     const now = Date.now();
     const uptime = now - SERVER_START_TIME;
-    const loopDuration = 3600000;
+    const loopDuration = TOTAL_AUDIO_DURATION_MS;
     const currentLoopPosition = uptime % loopDuration;
 
     // Find current track

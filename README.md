@@ -4,7 +4,7 @@
 
 A sophisticated, globally synchronized live radio station web application dedicated to The Weeknd's *Dawn FM*.
 
-![Preview](./public/cover.png)
+![Preview](./public/cover.jpg)
 
 ## 🌟 Key Features
 
@@ -42,8 +42,8 @@ Unlike standard file servers, this project implements a custom **Time-Based Stre
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/dawn-fm-radio.git
-    cd dawn-fm-radio
+    git clone https://github.com/danyooooo/103.5-Dawn-FM.git
+    cd 103.5-Dawn-FM
     ```
 
 2.  Install dependencies:
@@ -53,7 +53,7 @@ Unlike standard file servers, this project implements a custom **Time-Based Stre
 
 3.  **Important**: Place your audio source file.
     -   Rename The Weeknd's *Dawn FM* full album audio file to `master.mp3`.
-    -   Place it in `server/data/`.
+    -   Place it in `server/data/assets/`.
     *(Note: This repository does not include the copyrighted audio file).*
 
 ### Running the Station
@@ -67,13 +67,15 @@ The radio will be live at `http://localhost:3000`.
 ## 📂 Project Structure
 
 ```
-dawn-fm/
+103.5-Dawn-FM/
 ├── public/             # Static frontend assets
 │   ├── script.js       # Client Logic (Sync, UI, Media Session)
 │   ├── style.css       # Premium CSS styling
 │   └── index.html      # Main entry point
 ├── server/
 │   ├── data/
+│   │   ├── assets/
+│   │   │   └── master.mp3  # Audio file
 │   │   ├── offsets.json    # Track timing metadata
 │   │   └── state.json      # Persistence file (auto-generated)
 │   └── BroadcastController.js # The "Virtual DJ" Engine
